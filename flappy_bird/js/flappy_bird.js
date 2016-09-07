@@ -1,11 +1,16 @@
 // Create the main state to contain the game
 var mainState = {
+    // multiplier for difficulty
+    DIFFICULTY: 1,
+
     // Game state functions
     preload: function() {
         // Load bird sprite
         game.load.image('bird', 'assets/bird.png');
         // Load pipe sprite
         game.load.image('pipe', 'assets/pipe.png');
+        // Load jump sounds
+        game.load.audio('jumpSound', 'assets/jump.wav');
     },
     create: function() {
         // Setup the background and physics.
@@ -17,7 +22,11 @@ var mainState = {
 
         // Bird physics
         game.physics.arcade.enable(this.bird);
-        this.bird.body.gravity.y = 1000;
+        this.bird.anchor.setTo(-0.2, 0.5); // Improves the look of the animation
+        this.bird.body.gravity.y = 1000 * this.DIFFICULTY;
+
+        // Jump sound
+        this.jumpSound = game.add.audio('jumpSound');
 
         // Call 'jump' when spacebar is hit
         var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -35,16 +44,31 @@ var mainState = {
         });
     },
     update: function() {
+        // Rotate the bird as it moves
+        if (this.bird.angle < 20) {
+            this.bird.angle += 1;
+        }
+
         // Kill the game if the bird is off the screen.
         if (this.bird.y < 0 || this.bird.y > 490) {
             this.restartGame();
         }
         // Kill the game if the player hits a pipe
-        game.physics.arcade.overlap(this.bird, this.pipes, this.restartGame, null, this);
+        game.physics.arcade.overlap(this.bird, this.pipes, this.hitPipe, null, this);
     },
     // Helper functions
     jump: function() {
-        this.bird.body.velocity.y = -350;
+        if (this.bird.alive == false) 
+            return; // can't jump while dead
+        
+        this.bird.body.velocity.y = -350 * this.DIFFICULTY;
+        // Create an animation to undo the rotation caused by falling
+        var animation = game.add.tween(this.bird);
+        // Change the angle by -20deg over 100ms
+        animation.to({angle: -20}, 100);
+        animation.start();
+        // Play the sound
+        this.jumpSound.play();
     },
 
     addOnePipe: function(x, y) {
@@ -52,7 +76,7 @@ var mainState = {
         this.pipes.add(pipe);
         game.physics.arcade.enable(pipe);
         // We add velocity to the pipe to make it move left, towards the bird.
-        pipe.body.velocity.x = -200;
+        pipe.body.velocity.x = -200 * this.DIFFICULTY;
         // Delete the pipe when its no longer visible
         pipe.checkWorldBounds = true;
         pipe.outOfBoundsKill = true;
@@ -76,6 +100,19 @@ var mainState = {
         // Increment the score
         this.score += 1;
         this.labelScore.text = this.score;
+    },
+    // Called when the bird hits a pipe
+    hitPipe: function() {
+        // If the bird has already hit a pipe, it's already falling off the screen so do nothing.
+        if (this.bird.alive == false) 
+            return;
+        
+        this.bird.alive = false;
+        game.time.events.remove(this.timer); // no more pipes will appear
+        this.pipes.forEach(function(p) {
+            p.body.velocity.x = 0; // stop the existing pipes from moving
+        }, this);
+        
     },
     restartGame: function() {
         game.state.start('main');
