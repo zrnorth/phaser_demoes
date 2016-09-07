@@ -26,12 +26,21 @@ var mainState = {
         // Display the pipes
         this.pipes = game.add.group();
         this.timer = game.time.events.loop(1500, this.addRowOfPipes, this); // new row every 1.5 sec
+
+        // Scoreboard
+        this.score = 0;
+        this.labelScore = game.add.text(20, 20, "0", {
+            font: "30px Arial",
+            fill: "#ffffff"
+        });
     },
     update: function() {
         // Kill the game if the bird is off the screen.
         if (this.bird.y < 0 || this.bird.y > 490) {
             this.restartGame();
         }
+        // Kill the game if the player hits a pipe
+        game.physics.arcade.overlap(this.bird, this.pipes, this.restartGame, null, this);
     },
     // Helper functions
     jump: function() {
@@ -64,6 +73,9 @@ var mainState = {
                 this.addOnePipe(x, y);
             }
         }
+        // Increment the score
+        this.score += 1;
+        this.labelScore.text = this.score;
     },
     restartGame: function() {
         game.state.start('main');
