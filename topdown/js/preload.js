@@ -16,8 +16,10 @@ TopDown.Preload.prototype = {
         this.load.image('door', 'assets/images/door.png');
         this.load.image('heart', 'assets/images/heart.png');
         this.load.image('needle', 'assets/images/needle.png');
-        this.load.image('player', 'assets/images/player.png');
         this.load.image('shroom', 'assets/images/shroom.png');
+
+        // loading player w/ walking animations
+        this.load.spritesheet('player', 'assets/images/player.png', 16, 16);
     },
     create: function() {
         this.state.start('Game'); // done loading, go to game

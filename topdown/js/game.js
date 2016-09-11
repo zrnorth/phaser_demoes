@@ -27,7 +27,6 @@ TopDown.Game.prototype = {
         this.createDoors();
 
         this.createPlayer();
-
     },
 
     createItems: function() {
@@ -54,10 +53,18 @@ TopDown.Game.prototype = {
     createPlayer: function() {
         var result = this.findObjectsByType('playerStart', this.map, 'objectsLayer');
         // There should only ever be one result, obviously
-        this.player = this.game.add.sprite(result[0].x, result[0].y, 'player');
-        this.game.physics.arcade.enable(this.player);
+        this.player = this.game.add.sprite(result[0].x, result[0].y, 'player', 4);
 
+        // Add player animations
+        this.player.animations.add('up', [0, 1, 2, 3], 10, true);
+        this.player.animations.add('down', [4, 5, 6, 7], 10, true);
+        this.player.animations.add('left', [8, 9, 10, 11], 10, true);
+        this.player.animations.add('right', [12, 13, 14, 15], 10, true);
+
+        // Add physics and camera
+        this.game.physics.arcade.enable(this.player);
         this.game.camera.follow(this.player);
+        // Add controls
         this.cursors = this.game.input.keyboard.createCursorKeys();
     },
 
@@ -87,18 +94,40 @@ TopDown.Game.prototype = {
     update: function() {
         // Player movement
         this.player.body.velocity.x = this.player.body.velocity.y = 0;
+        var animationIsPlaying = false;
 
-        if (this.cursors.up.isDown) {
-            this.player.body.velocity.y -= 50;
-        }
-        if (this.cursors.down.isDown) {
-            this.player.body.velocity.y += 50;
-        }
         if (this.cursors.left.isDown) {
             this.player.body.velocity.x -= 50;
+            if (!animationIsPlaying) {
+                this.player.animations.play('left');
+                animationIsPlaying = true;
+            }
         }
         if (this.cursors.right.isDown) {
             this.player.body.velocity.x += 50;
+            if (!animationIsPlaying) {
+                this.player.animations.play('right');
+                animationIsPlaying = true;
+            }
+        }
+        if (this.cursors.up.isDown) {
+            this.player.body.velocity.y -= 50;
+            if (!animationIsPlaying) {
+                this.player.animations.play('up');
+                animationIsPlaying = true;
+            }
+        }
+        if (this.cursors.down.isDown) {
+            this.player.body.velocity.y += 50;
+            if (!animationIsPlaying) {
+                this.player.animations.play('down');
+                animationIsPlaying = true;
+            }
+        }
+
+        // if all else down, stop animations.
+        if (this.player.body.velocity.x === 0 && this.player.body.velocity.y === 0) {
+            this.player.animations.stop();
         }
 
         // Collisions
