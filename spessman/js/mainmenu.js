@@ -3,6 +3,12 @@ var Spessman = Spessman || {};
 Spessman.MainMenu = function(){};
 
 Spessman.MainMenu.prototype = {
+    init: function(score) {
+        var score = score || 0;
+        this.highestScore = this.highestScore || 0;
+
+        this.highestScore = Math.max(score, this.highestScore);
+    },
     create: function() {
         // Show the space tile and repeat it
         this.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'space');

@@ -14,9 +14,6 @@ Spessman.Game.prototype = {
         this.player.animations.add('fly', [0, 1, 2, 3], 5, true);
         this.player.animations.play('fly');
 
-        // Set score
-        this.playerScore = 0;
-
         // Set physics
         this.game.physics.arcade.enable(this.player);
         this.playerSpeed = 120;
@@ -30,6 +27,9 @@ Spessman.Game.prototype = {
         this.generateAsteroids();
         this.generateCollectables();
 
+        // show score
+        this.playerScore = 0;
+        this.showLabels();
     },
 
     update: function() {
@@ -107,10 +107,23 @@ Spessman.Game.prototype = {
     collect: function(player, collectable) {
         this.collectSound.play();
         this.playerScore++;
+        this.scoreLabel.text = this.playerScore;
         collectable.kill();
     },
 
+    showLabels: function() {
+        // score text
+        var text = "0";
+        var style = {
+            font: "20px Arial",
+            fill: "#ffffff",
+            align: "center"
+        };
+        this.scoreLabel = this.game.add.text(this.game.width-50, this.game.height-50, text, style);
+        this.scoreLabel.fixedToCamera = true;
+    },
+
     gameOver: function() { // return to main menu
-        this.game.state.start('MainMenu', true, false);
+        this.game.state.start('MainMenu', true, false, this.playerScore);
     }
 };
