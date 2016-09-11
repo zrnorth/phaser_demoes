@@ -10,6 +10,8 @@ var PhaserGame = function(game) {
     this.gridsize = 32; //32x32px
 
     this.speed = 150;
+    this.threshold = 3; // for fuzzy position matching. must be within these # of px
+    this.turnSpeed = 75; // in ms
 
     this.marker = new Phaser.Point();    // car's location for calcs
     this.turnPoint = new Phaser.Point(); // we store the point at which we want to change dir here.
@@ -17,7 +19,7 @@ var PhaserGame = function(game) {
     this.directions = [null, null, null, null, null]; // 1 extra bc 1-indexed.
     this.opposites = [ Phaser.NONE, Phaser.RIGHT, Phaser.LEFT, Phaser.DOWN, Phaser.UP ];
 
-    this.current = Phaser.NONE;
+    this.current = Phaser.UP;
     this.turning = Phaser.NONE;
 };
 
@@ -46,14 +48,16 @@ PhaserGame.prototype = {
         
         // Create car
         var playerSpawn = this.map.objects['objects'][0]; // only object on map lol
-        this.car = this.add.sprite(playerSpawn.x, (playerSpawn.y - this.map.tileHeight) /* tiled measures from bot left*/, 'car');
+        // Need to add gridsize/2 to it because we're moving the anchor.
+        this.car = this.add.sprite(playerSpawn.x+(this.gridsize/2), playerSpawn.y-this.map.tileHeight+(this.gridsize/2), 'car');
+        this.car.anchor.setTo(0.5);
         this.physics.arcade.enable(this.car);
 
         // Create cursors
         this.cursors = this.input.keyboard.createCursorKeys();
         
         // Move down
-        this.move(Phaser.UP);
+        this.move(Phaser.DOWN);
     },
 
     update: function() {
@@ -72,6 +76,32 @@ PhaserGame.prototype = {
         this.directions[Phaser.RIGHT] = this.map.getTileRight(i, x, y);
         this.directions[Phaser.UP] = this.map.getTileAbove(i, x, y);
         this.directions[Phaser.DOWN] = this.map.getTileBelow(i, x, y);
+
+        // Get player input
+        this.checkKeys();
+
+        // If player wants to turn, attempt to turn
+        if (this.turning !== Phaser.NONE) {
+            this.turn();
+        }
+    },
+
+    checkKeys: function() {
+        if (this.cursors.left.isDown && this.current !== Phaser.LEFT) {
+            this.checkDirection(Phaser.LEFT);
+        }
+        else if (this.cursors.right.isDown && this.current !== Phaser.RIGHT) {
+            this.checkDirection(Phaser.RIGHT);
+        }
+        else if (this.cursors.up.isDown && this.current !== Phaser.UP) {
+            this.checkDirection(Phaser.UP);
+        }
+        else if (this.cursors.down.isDown && this.current !== Phaser.DOWN) {
+            this.checkDirection(Phaser.DOWN);
+        }
+        else { // this prevents turning if no key held down.
+            this.turning = Phaser.NONE;
+        }
     },
 
     // move the car
@@ -88,7 +118,24 @@ PhaserGame.prototype = {
             this.car.body.velocity.y = speed;
         }
 
+        this.add.tween(this.car).to({ angle: this.getAngle(direction)}, this.turnSpeed, "Linear", true);
+
         this.current = direction;
+    },
+
+    // Helper for move(), gets the direction we want to point the car when we turn.
+    getAngle: function(to) {
+        // Turning around
+        if (this.current === this.opposites[to]) {
+            return "180";
+        }
+        if ((this.current === Phaser.UP && to === Phaser.LEFT)    || 
+            (this.current === Phaser.LEFT && to === Phaser.DOWN)  || 
+            (this.current === Phaser.DOWN && to === Phaser.RIGHT) || 
+            (this.current === Phaser.RIGHT && to === Phaser.UP)) {
+                return "-90";
+        }
+        return "90";
     },
 
     // Check if we can turn this way. Can't turn into walls.
@@ -108,9 +155,34 @@ PhaserGame.prototype = {
         // If you want to turn sideways, set the turnpoints
         else { 
             this.turning = turnTo;
+            // Our ideal turning point is the dead center of the tile we are currently entering.
+            // This is where we will begin our turn
             this.turnPoint.x = (this.marker.x * this.gridsize) + (this.gridsize / 2);
             this.turnPoint.y = (this.marker.y * this.gridsize) + (this.gridsize / 2);
         }
+    },
+
+    // Perform the turn if we can. Return true if turn performed.
+    turn: function() {
+        var cx = Math.floor(this.car.x);
+        var cy = Math.floor(this.car.y);
+
+        // haven't gotten to the turn point yet. keep going straight til you're there
+        if (!this.math.fuzzyEqual(cx, this.turnPoint.x, this.threshold) ||
+            !this.math.fuzzyEqual(cy, this.turnPoint.y, this.threshold)) {
+            return false;
+        }
+
+        // Ready to turn. lock to the turn point
+        this.car.x = this.turnPoint.x;
+        this.car.y = this.turnPoint.y; 
+
+        this.car.body.reset(this.turnPoint.x, this.turnPoint.y);
+
+        this.move(this.turning);
+        this.turning = Phaser.NONE;
+
+        return true;
     },
 
     // render: creates an overlay on the game tiles.
