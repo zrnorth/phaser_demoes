@@ -91,15 +91,27 @@ TopDown.Game.prototype = {
         if (this.cursors.up.isDown) {
             this.player.body.velocity.y -= 50;
         }
-        else if (this.cursors.down.isDown) {
+        if (this.cursors.down.isDown) {
             this.player.body.velocity.y += 50;
         }
-        else if (this.cursors.left.isDown) {
+        if (this.cursors.left.isDown) {
             this.player.body.velocity.x -= 50;
         }
-        else if (this.cursors.right.isDown) {
+        if (this.cursors.right.isDown) {
             this.player.body.velocity.x += 50;
         }
-    }
 
+        // Collisions
+        this.game.physics.arcade.collide(this.player, this.blockedLayer);
+        this.game.physics.arcade.overlap(this.player, this.items, this.collect, null, this);
+        this.game.physics.arcade.overlap(this.player, this.doors, this.enterDoor, null, this);
+    },
+
+    collect: function(player, collectable) {
+        console.log("yummy!");
+        collectable.destroy();
+    },
+    enterDoor: function(player, door) {
+        console.log("Entering this door will take you to " + door.targetTilemap + " to coords: (" + door.targetX + ", " + door.targetY + ").");
+    },
 };
