@@ -54,10 +54,16 @@ Spessman.Game.prototype = {
         // Create an rng for each asteroid to determine its movement.
         var numAsteroids = this.game.rnd.integerInRange(150, 200);
         var asteroid;
+        var asteroidX;
+        var asteroidY;
 
         for (var i = 0; i < numAsteroids; i++) {
             // first create the sprite
-            asteroid = this.asteroids.create(this.game.world.randomX, this.game.world.randomY, 'rock');
+            // make sure the asteroid does not spawn within 200 of the player.
+            asteroid = this.asteroids.create(this.getValidAsteroidPosition('x', 150),
+                                             this.getValidAsteroidPosition('y', 150),
+                                             'rock');
+
             asteroid.scale.setTo(this.game.rnd.integerInRange(10, 40)/10); // 1.0f - 4.0f
 
             // now set physics
@@ -86,6 +92,30 @@ Spessman.Game.prototype = {
     setObjectPhysics: function(objects) {
         objects.enableBody = true;
         objects.physicsBodyType = Phaser.Physics.ARCADE;
+    },
+
+    getValidAsteroidPosition: function(axis, minDistFromPlayer) {
+        var position, range, center;
+        if (axis === 'x' || axis === 'X') {
+            range = this.game.world.width;
+            center = this.game.world.centerX;
+        }
+        else if (axis === 'y' || axis === 'Y') {
+            range = this.game.world.height;
+            center = this.game.world.centerY;
+        }
+        else return null; // error
+
+        // Generate a random number in the range [0, center-minDist] U [center+minDist, range)
+        // Do this by generating a random number in the range [0, range-(2*minDist)]...
+        var unmappedRandom = this.game.rnd.integerInRange(0, (range - (minDistFromPlayer*2)));
+        position = unmappedRandom;
+        // ...then, if it's in the upper half, add 2*minDist to it to create the "bubble" around player       
+        if (unmappedRandom > center - minDistFromPlayer) {
+            position += minDistFromPlayer*2;
+        }
+
+        return position;
     },
 
     hitAsteroid: function(player, asteroid) {
